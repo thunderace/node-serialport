@@ -68,6 +68,9 @@ function SerialPortFactory() {
 
     var err;
 
+    options.virtual = options.virtual || false;
+    options.virtualTx = options.virtualTx || null;
+
     options.baudRate = options.baudRate || options.baudrate || _options.baudrate;
 
     options.dataBits = options.dataBits || options.databits || _options.databits;
@@ -169,31 +172,54 @@ function SerialPortFactory() {
 
   util.inherits(SerialPort, stream.Stream);
 
+  SerialPort.prototype.virtualRx = function (buffer, callback) {
+    var self = this;
+    if (!this.fd) {
+      var err = new Error("Serialport not open.");
+      if (callback) {
+        callback(err);
+      }
+      return;
+    }
+
+    if (Buffer.isBuffer(buffer)) {
+      buffer = buffer.toString();
+    }
+    self.emit('data', buffer);
+
+  };
+
 
   SerialPort.prototype.open = function (callback) {
     var self = this;
     this.paused = true;
     this.readable = true;
     this.reading = false;
-    factory.SerialPortBinding.open(this.path, this.options, function (err, fd) {
-      self.fd = fd;
-      if (err) {
-        if (callback) {
-          callback(err);
-        } else {
-          self.emit('error', err);
+    if (this.options.virtual === true) {
+		  self.fd = 1;
+		  self.emit('open');
+		  if (callback) { callback(); }
+    } else {
+      factory.SerialPortBinding.open(this.path, this.options, function (err, fd) {
+        self.fd = fd;
+        if (err) {
+          if (callback) {
+            callback(err);
+          } else {
+            self.emit('error', err);
+          }
+          return;
         }
-        return;
-      }
-      if (process.platform !== 'win32') {
-        self.paused = false;
-        self.serialPoller = new factory.SerialPortBinding.SerialportPoller(self.fd, function () { self._read(); });
-        self.serialPoller.start();
-      }
-
-      self.emit('open');
-      if (callback) { callback(); }
-    });
+        if (process.platform !== 'win32') {
+          self.paused = false;
+          self.serialPoller = new factory.SerialPortBinding.SerialportPoller(self.fd, function () { self._read(); });
+          self.serialPoller.start();
+        }
+  
+        self.emit('open');
+        if (callback) { callback(); }
+      });
+    }
   };
 
   SerialPort.prototype.write = function (buffer, callback) {
@@ -211,6 +237,11 @@ function SerialPortFactory() {
     if (!Buffer.isBuffer(buffer)) {
       buffer = new Buffer(buffer);
     }
+    if (options.virtualTx) {
+    	options.virtualTx(buffer, this);
+    	return;
+    }
+    
     factory.SerialPortBinding.write(this.fd, buffer, function (err, results) {
       if (callback) {
         callback(err, results);
