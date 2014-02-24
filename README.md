@@ -12,6 +12,10 @@
   8ee88 88ee 88   8 88 88  8 88eee 88    8eee8 88   8  88
 ```
 
+Fork 4 serial port simulation
+
+
+
 [![Build Status](https://travis-ci.org/voodootikigod/node-serialport.png?branch=master)](https://travis-ci.org/voodootikigod/node-serialport)
 
 Version: 1.3.0 - Released January 15, 2014
