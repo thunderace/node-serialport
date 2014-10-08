@@ -237,8 +237,8 @@ function SerialPortFactory() {
     if (!Buffer.isBuffer(buffer)) {
       buffer = new Buffer(buffer);
     }
-    if (options.virtualTx) {
-    	options.virtualTx(buffer, this);
+    if (this.options.virtualTx) {
+    	this.options.virtualTx(buffer, this);
     	return;
     }
     
